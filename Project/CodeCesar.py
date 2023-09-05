@@ -1,4 +1,5 @@
 import argparse
+
 def coder_cesar (language, review, text):
     flag = True
     while True:
@@ -14,10 +15,12 @@ def coder_cesar (language, review, text):
         break
     if flag is False:
         return
+        
     eng_lower_alphabet = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
     eng_upper_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
     rus_lower_alphabet = "абвгдежзийклмнопрстуфхцчшщъыьэюяабвгдежзийклмнопрстуфхцчшщъыьэюя"
     rus_upper_alphabet = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+    
     if language == 'rus':
         for shift in range (1, 32):
             flag = True
@@ -38,6 +41,7 @@ def coder_cesar (language, review, text):
                             break
             if flag is True:
                 print (f"{startString} - {shift}")
+                
     elif language == 'eng':
         for shift in range (1, 26):
             flag = True
@@ -58,6 +62,7 @@ def coder_cesar (language, review, text):
                             break
             if flag is True:
                 print (f"{startString} - {shift}")
+                
     print("The process is completed")
 
 parser = argparse.ArgumentParser()
