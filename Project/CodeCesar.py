@@ -1,7 +1,11 @@
 import argparse
-
 def coder_cesar (language, review, text):
+    eng_lower_alphabet = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
+    eng_upper_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    rus_lower_alphabet = "абвгдежзийклмнопрстуфхцчшщъыьэюяабвгдежзийклмнопрстуфхцчшщъыьэюя"
+    rus_upper_alphabet = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
     flag = True
+
     while True:
         if language not in ['rus', 'eng']:
             print ("Invalid language!")
@@ -12,15 +16,18 @@ def coder_cesar (language, review, text):
         if type(text) != str:
             print ("Invalid text type!")
             flag = False
+        for letter in text:
+            if language == "rus" and letter.lower() not in rus_lower_alphabet:
+                print("Invalid text language!")
+                flag = False
+                break
+            if language == "eng" and letter.lower() not in eng_lower_alphabet:
+                print("Invalid text language!")
+                flag = False
+                break
         break
     if flag is False:
         return
-        
-    eng_lower_alphabet = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
-    eng_upper_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    rus_lower_alphabet = "абвгдежзийклмнопрстуфхцчшщъыьэюяабвгдежзийклмнопрстуфхцчшщъыьэюя"
-    rus_upper_alphabet = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-    
     if language == 'rus':
         for shift in range (1, 32):
             flag = True
@@ -41,7 +48,6 @@ def coder_cesar (language, review, text):
                             break
             if flag is True:
                 print (f"{startString} - {shift}")
-                
     elif language == 'eng':
         for shift in range (1, 26):
             flag = True
@@ -62,7 +68,6 @@ def coder_cesar (language, review, text):
                             break
             if flag is True:
                 print (f"{startString} - {shift}")
-                
     print("The process is completed")
 
 parser = argparse.ArgumentParser()
