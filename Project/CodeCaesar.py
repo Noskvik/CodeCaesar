@@ -1,38 +1,45 @@
 import argparse
-def coder_cesar (language, review, text):
+
+def coder_caesar(language, review, text):
     eng_lower_alphabet = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
     eng_upper_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
     rus_lower_alphabet = "абвгдежзийклмнопрстуфхцчшщъыьэюяабвгдежзийклмнопрстуфхцчшщъыьэюя"
     rus_upper_alphabet = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
     flag = True
-
+    
     while True:
         if language not in ['rus', 'eng']:
-            print ("Invalid language!")
+            print("Invalid language!")
             flag = False
         if review not in ['y', 'n']:
-            print ("Invalid review!")
+            print("Invalid review!")
             flag = False
         if type(text) != str:
-            print ("Invalid text type!")
+            print("Invalid text type!")
             flag = False
         for letter in text:
             if language == "rus" and letter.lower() not in rus_lower_alphabet:
+                if letter == ' ':
+                    continue
                 print("Invalid text language!")
                 flag = False
                 break
             if language == "eng" and letter.lower() not in eng_lower_alphabet:
+                if letter == ' ':
+                    continue
                 print("Invalid text language!")
                 flag = False
                 break
         break
+        
     if flag is False:
         return
+        
     if language == 'rus':
-        for shift in range (1, 32):
+        for shift in range(1, 32):
             flag = True
             startString = ""
-            for letter in range (len(text)):
+            for letter in range(len(text)):
                 if text[letter] in rus_upper_alphabet:
                     startString += rus_upper_alphabet[rus_upper_alphabet.find(text[letter])+shift]
                 elif text[letter] in rus_lower_alphabet:
@@ -47,9 +54,9 @@ def coder_cesar (language, review, text):
                             flag = False
                             break
             if flag is True:
-                print (f"{startString} - {shift}")
+                print(f"{startString} - {shift}")
     elif language == 'eng':
-        for shift in range (1, 26):
+        for shift in range(1, 26):
             flag = True
             startString = ""
             for letter in range(len(text)):
@@ -67,15 +74,20 @@ def coder_cesar (language, review, text):
                             flag = False
                             break
             if flag is True:
-                print (f"{startString} - {shift}")
-    print("The process is completed")
+                print(f"{startString} - {shift}")
+    print("The process is completed!")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('language', help = "text language: rus/eng")
-parser.add_argument('review', help = "checking for non-existent letter combinations: y/n")
-parser.add_argument('text', help = "text to be processed")
+parser.add_argument('language', help="Text language: rus/eng")
+parser.add_argument('review', help="Checking for non-existent letter combinations: y/n. Used for decryption")
+parser.add_argument('text', help="Text to be processed", type=str, nargs='+')
 args = parser.parse_args()
+
 language = str(args.language)
 review = str(args.review)
-text = str(args.text)
-coder_cesar(language, review, text)
+text = list(args.text)
+resultText = ""
+for x in text:
+    resultText += f"{x} "
+
+coder_caesar(language, review, resultText)
