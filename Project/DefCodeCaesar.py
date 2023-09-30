@@ -3,35 +3,29 @@ def coder_caesar(language, review, text):
     eng_upper_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
     rus_lower_alphabet = "абвгдежзийклмнопрстуфхцчшщъыьэюяабвгдежзийклмнопрстуфхцчшщъыьэюя"
     rus_upper_alphabet = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+    
     flag = True
+    listProcess = []
 
     while True:
         if language not in ['rus', 'eng']:
-            print("Invalid language!")
-            flag = False
-        if review not in ['y', 'n']:
-            print("Invalid review!")
-            flag = False
+            return (True, "Invalid language!")
+        if review not in [True, False]:
+            return (True, "Invalid review!")
         if type(text) != str:
-            print("Invalid text type!")
-            flag = False
+            return (True, "Invalid text type!")
+        if text.isspace() or text == '':
+            return (True, "Empty text")
         for letter in text:
             if language == "rus" and letter.lower() not in rus_lower_alphabet:
                 if letter == ' ':
                     continue
-                print("Invalid text language!")
-                flag = False
-                break
+                return (True, "Invalid text language!")
             if language == "eng" and letter.lower() not in eng_lower_alphabet:
                 if letter == ' ':
                     continue
-                print("Invalid text language!")
-                flag = False
-                break
+                return (True, "Invalid text language!")
         break
-
-    if flag is False:
-        return
 
     if language == 'rus':
         for shift in range(1, 32):
@@ -44,7 +38,7 @@ def coder_caesar(language, review, text):
                     startString += rus_lower_alphabet[rus_lower_alphabet.find(text[letter]) + shift]
                 else:
                     startString += text[letter]
-            if review == 'y':
+            if review is True:
                 with open('RusReview.txt', 'r', encoding='utf-8') as f:
                     for line in f:
                         line = line.replace('\n', '')
@@ -52,7 +46,7 @@ def coder_caesar(language, review, text):
                             flag = False
                             break
             if flag is True:
-                print(f"{startString} - {shift}")
+                listProcess.append(f"{startString} - {shift}")
     elif language == 'eng':
         for shift in range(1, 26):
             flag = True
@@ -64,7 +58,7 @@ def coder_caesar(language, review, text):
                     startString += eng_lower_alphabet[eng_lower_alphabet.find(text[letter]) + shift]
                 else:
                     startString += text[letter]
-            if review == 'y':
+            if review is True:
                 with open('EngReview.txt', 'r', encoding='utf-8') as f:
                     for line in f:
                         line = line.replace('\n', '')
@@ -72,5 +66,6 @@ def coder_caesar(language, review, text):
                             flag = False
                             break
             if flag is True:
-                print(f"{startString} - {shift}")
-    print("The process is completed!")
+                listProcess.append(f"{startString} - {shift}")
+    #print("The process is completed!")
+    return listProcess
