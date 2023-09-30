@@ -67,5 +67,4 @@ def coder_caesar(language, review, text):
                             break
             if flag is True:
                 listProcess.append(f"{startString} - {shift}")
-    #print("The process is completed!")
     return listProcess
