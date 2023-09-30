@@ -1,4 +1,4 @@
-body {
+body{
     height: 100%;
 }
 
@@ -17,8 +17,58 @@ body {
     font-size: 135%;
 }
 
-.rowText{
+.settings{
     display: flex;
     flex-direction: row;
+    align-items: center;
+    margin-top: 15px;
+}
+
+#selectLanguage{
+    width: 180px;
+    height: 30px;
+    margin: 10px;
+    border-radius: 4px;
+}
+
+#objText{
+    width: 450px;
+    height: 24px;
+    margin: 10px;
+    border-radius: 4px;
+}
+
+#labelReview{
+    margin: 10px;
+}
+
+#review{
+    width: 18px;
+    height: 18px;
+    margin-top: 7px;
+}
+
+#button{
+    font-size: 80%;
+    padding: 3px 20px;
+    margin: 10px;
+    border: 2px solid #999999;
+    background-color: rgb(241, 241, 241);
+    border-radius: 4px;
+}
+
+.enteredText{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#listEntered{
+    padding-inline-start: 0px;
+}
+
+#listEntered li{
+    list-style-type: none;
 }
 
