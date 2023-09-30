@@ -21,22 +21,54 @@
       <img src="Label.png" width = "600" alt = "Логотип">
     </div>
     <div class = "main-page">
-      <div class = "rowText">
-        <p>Entered text:&nbsp;<p id = "inputText"></p></p>
+      <div class = "settings">
+        <select name = "listLang" id = "selectLanguage">
+          <option value = "">Please choose language</option>
+          <option value = "rus">Russian</option>
+          <option value = "eng">English</option>
+        </select>
+        <input type = "text" id = objText placeholder="Enter your text">
+        <label id = "labelReview">
+          <input type = "checkbox" id = "review">Review
+        </label>
+        <button id = "button">Отправить</button>
       </div>
-      <py-script id = "pyResult"> 
-          from DefCodeCaesar import coder_caesar
-          lang, rev, *text = input().split()
+      <div class = "enteredText">
+        <p id = "inputText_flex">Entered text:&nbsp;<label id = "inputText"></label></p>
+        <ul id = "listEntered">
+        </ul>
+      </div>
+      <py-script id = "pyResult">
+        from js import document
+        from pyodide import create_proxy
+        from DefCodeCaesar import coder_caesar
+
+        def _settings_change(*args, **kwargs):
+          document.getElementById('listEntered').innerText = ''
+          lang = document.getElementById("selectLanguage").value
+          rev = document.getElementById("review").checked
+          text = document.getElementById("objText").value
           lang = str(lang)
-          rev = str(rev)
-          resultText = ''
-          for num in range(len(text)):
-              resultText += text[num]
-              if num == len(text)-1:
-                continue
-              resultText += " "
-          coder_caesar(lang, rev, resultText)
-          pyscript.write('inputText', resultText)
+          listProcess = coder_caesar(lang, rev, text)
+          listEntered = document.querySelector('#listEntered')
+
+          if listProcess[0] is True:
+            errorStr = document.createElement('li')
+            errorStr.id = "Error"
+            listEntered.append(errorStr)
+            document.getElementById("Error").innerText = listProcess[1]
+          else:
+            for elem in range(0, len(listProcess)):
+              liStr = document.createElement('li')
+              liStr.id = f"{elem}"
+              listEntered.append(liStr)
+              document.getElementById(f"{elem}").innerText = listProcess[elem]
+
+          pyscript.write('inputText', text)
+
+        settings_change = create_proxy(_settings_change)
+        document.getElementById("button").addEventListener("click", settings_change)
+        
       </py-script>
     </div>
     <div class = "footer-page">
