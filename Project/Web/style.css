@@ -72,3 +72,26 @@ body{
     list-style-type: none;
 }
 
+.footer-page{
+    flex: 0 0 auto;
+    text-align: center;
+    font-size: 135%;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+a{
+    outline: none;
+    text-decoration: none;
+}
+
+a:link{
+    color: #0a0099;
+}
+  
+  a:visited{
+    color: #640a88;
+}
+
+a:hover{
+    color: red;
+}
