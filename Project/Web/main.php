@@ -4,8 +4,8 @@
 
 <head>
   <title>CodeCaesar</title>
-  <meta charset = "UTF-8">
-  <link rel = "stylesheet" href = "style.css">
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="style.css">
   <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
   <py-env>
       - paths:
@@ -16,29 +16,29 @@
 </head>
 
 <body>
-  <div class = "flex-container">
-    <div class = "head-page">
-      <img src="Label.png" width = "600" alt = "Логотип">
+  <div class="flex-container">
+    <div class="head-page">
+      <img src="Label.png" width="600" alt="Логотип">
     </div>
-    <div class = "main-page">
-      <div class = "settings">
-        <select name = "listLang" id = "selectLanguage">
-          <option value = "">Please choose language</option>
-          <option value = "rus">Russian</option>
-          <option value = "eng">English</option>
+    <div class="main-page">
+      <div class="settings">
+        <select name="listLang" id="selectLanguage">
+          <option value="">Please choose language</option>
+          <option value="rus">Russian</option>
+          <option value="eng">English</option>
         </select>
-        <input type = "text" id = objText placeholder="Enter your text">
-        <label id = "labelReview">
-          <input type = "checkbox" id = "review">Review
+        <input type="text" id="objText" placeholder="Enter your text">
+        <label id="labelReview">
+          <input type="checkbox" id="review">Review
         </label>
-        <button id = "button">Отправить</button>
+        <button id="button">Отправить</button>
       </div>
-      <div class = "enteredText">
-        <p id = "inputText_flex">Entered text:&nbsp;<label id = "inputText"></label></p>
-        <ul id = "listEntered">
+      <div class="enteredText">
+        <p id="inputText_flex">Entered text:&nbsp;<label id="inputText"></label></p>
+        <ul id="listEntered">
         </ul>
       </div>
-      <py-script id = "pyResult">
+      <py-script id="pyResult">
         from js import document
         from pyodide import create_proxy
         from DefCodeCaesar import coder_caesar
@@ -71,7 +71,12 @@
         
       </py-script>
     </div>
-    <div class = "footer-page">
+    <div class="footer-page">
+      <hr>
+      <p>Author of project - Noskvik</p>
+      <img class="icon" src="github.svg" width="17">
+      <a href="https://github.com/Noskvik/CodeCaesar">GitHub</a>
+      <hr>
     </div>
   </div>
 </body>
