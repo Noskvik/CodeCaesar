@@ -1,0 +1,456 @@
+<#
+
+.SYNOPSIS
+
+    ADRecon is a tool which gathers information about the Active Directory and generates a report which can provide a holistic picture of the current state of the target AD environment.
+
+.DESCRIPTION
+
+    ADRecon is a tool which extracts and combines various artefacts (as highlighted below) out of an AD environment. The information can be presented in a specially formatted Microsoft Excel report that includes summary views with metrics to facilitate analysis and provide a holistic picture of the current state of the target AD environment.
+    The tool is useful to various classes of security professionals like auditors, DFIR, students, administrators, etc. It can also be an invaluable post-exploitation tool for a penetration tester.
+    It can be run from any workstation that is connected to the environment, even hosts that are not domain members. Furthermore, the tool can be executed in the context of a non-privileged (i.e. standard domain user) account.
+    Fine Grained Password Policy, LAPS and BitLocker may require Privileged user accounts.
+    The tool will use Microsoft Remote Server Administration Tools (RSAT) if available, otherwise it will communicate with the Domain Controller using LDAP.
+    The following information is gathered by the tool:
+    - Forest;
+    - Domain;
+    - Trusts;
+    - Sites;
+    - Subnets;
+    - Default and Fine Grained Password Policy (if implemented);
+    - Domain Controllers, SMB versions, whether SMB Signing is supported and FSMO roles;
+    - Users and their attributes;
+    - Service Principal Names (SPNs);
+    - Groups and memberships;
+    - Organizational Units (OUs);
+    - Group Policy Object and gPLink details;
+    - DNS Zones and Records;
+    - Printers;
+    - Computers and their attributes;
+    - PasswordAttributes (Experimental);
+    - LAPS passwords (if implemented);
+    - BitLocker Recovery Keys (if implemented);
+    - ACLs (DACLs and SACLs) for the Domain, OUs, Root Containers, GPO, Users, Computers and Groups objects;
+    - GPOReport (requires RSAT);
+    - Kerberoast (not included in the default collection method); and
+    - Domain accounts used for service accounts (requires privileged account and not included in the default collection method).
+
+    Author     : Prashant Mahajan
+    Company    : https://www.senseofsecurity.com.au
+
+.NOTES
+
+    The following commands can be used to turn off ExecutionPolicy: (Requires Admin Privs)
+
+    PS > $ExecPolicy = Get-ExecutionPolicy
+    PS > Set-ExecutionPolicy bypass
+    PS > .\ADRecon.ps1
+    PS > Set-ExecutionPolicy $ExecPolicy
+
+    OR
+
+    Start the PowerShell as follows:
+    powershell.exe -ep bypass
+
+    OR
+
+    Already have a PowerShell open ?
+    PS > $Env:PSExecutionPolicyPreference = 'Bypass'
+
+    OR
+
+    powershell.exe -nologo -executionpolicy bypass -noprofile -file ADRecon.ps1
+
+.PARAMETER Protocol
+	Which protocol to use; ADWS (default) or LDAP
+
+.PARAMETER DomainController
+	Domain Controller IP Address or Domain FQDN.
+
+.PARAMETER Credential
+	Domain Credentials.
+
+.PARAMETER GenExcel
+	Path for ADRecon output folder containing the CSV files to generate the ADRecon-Report.xlsx. Use it to generate the ADRecon-Report.xlsx when Microsoft Excel is not installed on the host used to run ADRecon.
+
+.PARAMETER OutputDir
+	Path for ADRecon output folder to save the files and the ADRecon-Report.xlsx. (The folder specified will be created if it doesn't exist)
+
+.PARAMETER Collect
+    Which modules to run; Comma separated; e.g Forest,Domain (Default all except Kerberoast, DomainAccountsusedforServiceLogon)
+    Valid values include: Forest, Domain, Trusts, Sites, Subnets, PasswordPolicy, FineGrainedPasswordPolicy, DomainControllers, Users, UserSPNs, PasswordAttributes, Groups, GroupMembers, OUs, GPOs, gPLinks, DNSZones, Printers, Computers, ComputerSPNs, LAPS, BitLocker, ACLs, GPOReport, Kerberoast, DomainAccountsusedforServiceLogon.
+
+.PARAMETER OutputType
+    Output Type; Comma seperated; e.g STDOUT,CSV,XML,JSON,HTML,Excel (Default STDOUT with -Collect parameter, else CSV and Excel).
+    Valid values include: STDOUT, CSV, XML, JSON, HTML, Excel, All (excludes STDOUT).
+
+.PARAMETER DormantTimeSpan
+    Timespan for Dormant accounts. (Default 90 days)
+
+.PARAMETER PassMaxAge
+    Maximum machine account password age. (Default 30 days)
+
+.PARAMETER PageSize
+    The PageSize to set for the LDAP searcher object.
+
+.PARAMETER Threads
+    The number of threads to use during processing objects. (Default 10)
+
+.PARAMETER Log
+    Create ADRecon Log using Start-Transcript
+
+.EXAMPLE
+
+	.\ADRecon.ps1 -GenExcel C:\ADRecon-Report-<timestamp>
+    [*] ADRecon <version> by Prashant Mahajan (@prashant3535) from Sense of Security.
+    [*] Generating ADRecon-Report.xlsx
+    [+] Excelsheet Saved to: C:\ADRecon-Report-<timestamp>\<domain>-ADRecon-Report.xlsx
+
+.EXAMPLE
+
+	.\ADRecon.ps1 -DomainController <IP or FQDN> -Credential <domain\username>
+    [*] ADRecon <version> by Prashant Mahajan (@prashant3535) from Sense of Security.
+	[*] Running on <domain>\<hostname> - Member Workstation
+    <snip>
+
+    Example output from Domain Member with Alternate Credentials.
+
+.EXAMPLE
+
+	.\ADRecon.ps1 -DomainController <IP or FQDN> -Credential <domain\username> -Collect DomainControllers -OutputType Excel
+    [*] ADRecon <version> by Prashant Mahajan (@prashant3535) from Sense of Security.
+    [*] Running on WORKGROUP\<hostname> - Standalone Workstation
+    [*] Commencing - <timestamp>
+    [-] Domain Controllers
+    [*] Total Execution Time (mins): <minutes>
+    [*] Generating ADRecon-Report.xlsx
+    [+] Excelsheet Saved to: C:\ADRecon-Report-<timestamp>\<domain>-ADRecon-Report.xlsx
+    [*] Completed.
+    [*] Output Directory: C:\ADRecon-Report-<timestamp>
+
+    Example output from from a Non-Member using RSAT to only enumerate Domain Controllers.
+
+.EXAMPLE
+
+    .\ADRecon.ps1 -Protocol ADWS -DomainController <IP or FQDN> -Credential <domain\username>
+    [*] ADRecon <version> by Prashant Mahajan (@prashant3535) from Sense of Security.
+    [*] Running on WORKGROUP\<hostname> - Standalone Workstation
+    [*] Commencing - <timestamp>
+    [-] Domain
+    [-] Forest
+    [-] Trusts
+    [-] Sites
+    [-] Subnets
+    [-] Default Password Policy
+    [-] Fine Grained Password Policy - May need a Privileged Account
+    [-] Domain Controllers
+    [-] Users - May take some time
+    [-] User SPNs
+    [-] PasswordAttributes - Experimental
+    [-] Groups - May take some time
+    [-] Group Memberships - May take some time
+    [-] OrganizationalUnits (OUs)
+    [-] GPOs
+    [-] gPLinks - Scope of Management (SOM)
+    [-] DNS Zones and Records
+    [-] Printers
+    [-] Computers - May take some time
+    [-] Computer SPNs
+    [-] LAPS - Needs Privileged Account
+    WARNING: [*] LAPS is not implemented.
+    [-] BitLocker Recovery Keys - Needs Privileged Account
+    [-] ACLs - May take some time
+    WARNING: [*] SACLs - Currently, the module is only supported with LDAP.
+    [-] GPOReport - May take some time
+    WARNING: [EXCEPTION] Current security context is not associated with an Active Directory domain or forest.
+    WARNING: [*] Run the tool using RUNAS.
+    WARNING: [*] runas /user:<Domain FQDN>\<Username> /netonly powershell.exe
+    [*] Total Execution Time (mins): <minutes>
+    [*] Output Directory: C:\ADRecon-Report-<timestamp>
+    [*] Generating ADRecon-Report.xlsx
+    [+] Excelsheet Saved to: C:\ADRecon-Report-<timestamp>\<domain>-ADRecon-Report.xlsx
+
+    Example output from a Non-Member using RSAT.
+
+.EXAMPLE
+
+    .\ADRecon.ps1 -Protocol LDAP -DomainController <IP or FQDN> -Credential <domain\username>
+    [*] ADRecon <version> by Prashant Mahajan (@prashant3535) from Sense of Security.
+    [*] Running on WORKGROUP\<hostname> - Standalone Workstation
+    [*] LDAP bind Successful
+    [*] Commencing - <timestamp>
+    [-] Domain
+    [-] Forest
+    [-] Trusts
+    [-] Sites
+    [-] Subnets
+    [-] Default Password Policy
+    [-] Fine Grained Password Policy - May need a Privileged Account
+    [-] Domain Controllers
+    [-] Users - May take some time
+    [-] User SPNs
+    [-] PasswordAttributes - Experimental
+    [-] Groups - May take some time
+    [-] Group Memberships - May take some time
+    [-] OrganizationalUnits (OUs)
+    [-] GPOs
+    [-] gPLinks - Scope of Management (SOM)
+    [-] DNS Zones and Records
+    [-] Printers
+    [-] Computers - May take some time
+    [-] Computer SPNs
+    [-] LAPS - Needs Privileged Account
+    WARNING: [*] LAPS is not implemented.
+    [-] BitLocker Recovery Keys - Needs Privileged Account
+    [-] ACLs - May take some time
+    [-] GPOReport - May take some time
+    WARNING: [*] Currently, the module is only supported with ADWS.
+    [*] Total Execution Time (mins): <minutes>
+    [*] Output Directory: C:\ADRecon-Report-<timestamp>
+    [*] Generating ADRecon-Report.xlsx
+    [+] Excelsheet Saved to: C:\ADRecon-Report-<timestamp>\<domain>-ADRecon-Report.xlsx
+
+    Example output from a Non-Member using LDAP.
+
+.LINK
+
+    https://github.com/sense-of-security/ADRecon
+#>
+
+[CmdletBinding()]
+param
+(
+    [Parameter(Mandatory = $false, HelpMessage = "Which protocol to use; ADWS (default) or LDAP.")]
+    [ValidateSet('ADWS', 'LDAP')]
+    [string] $Protocol = 'ADWS',
+
+    [Parameter(Mandatory = $false, HelpMessage = "Domain Controller IP Address or Domain FQDN.")]
+    [string] $DomainController = '',
+
+    [Parameter(Mandatory = $false, HelpMessage = "Domain Credentials.")]
+    [Management.Automation.PSCredential] $Credential = [Management.Automation.PSCredential]::Empty,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Path for ADRecon output folder containing the CSV files to generate the ADRecon-Report.xlsx. Use it to generate the ADRecon-Report.xlsx when Microsoft Excel is not installed on the host used to run ADRecon.")]
+    [string] $GenExcel,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Path for ADRecon output folder to save the CSV/XML/JSON/HTML files and the ADRecon-Report.xlsx. (The folder specified will be created if it doesn't exist)")]
+    [string] $OutputDir,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Which modules to run; Comma separated; e.g Forest,Domain (Default all except Kerberoast, DomainAccountsusedforServiceLogon) Valid values include: Forest, Domain, Trusts, Sites, Subnets, PasswordPolicy, FineGrainedPasswordPolicy, DomainControllers, Users, UserSPNs, PasswordAttributes, Groups, GroupMembers, OUs, GPOs, gPLinks, DNSZones, Printers, Computers, ComputerSPNs, LAPS, BitLocker, ACLs, GPOReport, Kerberoast, DomainAccountsusedforServiceLogon")]
+    [ValidateSet('Forest', 'Domain', 'Trusts', 'Sites', 'Subnets', 'PasswordPolicy', 'FineGrainedPasswordPolicy', 'DomainControllers', 'Users', 'UserSPNs', 'PasswordAttributes', 'Groups', 'GroupMembers', 'OUs', 'GPOs', 'gPLinks', 'DNSZones', 'Printers', 'Computers', 'ComputerSPNs', 'LAPS', 'BitLocker', 'ACLs', 'GPOReport', 'Kerberoast', 'DomainAccountsusedforServiceLogon', 'Default')]
+    [array] $Collect = 'Default',
+
+    [Parameter(Mandatory = $false, HelpMessage = "Output type; Comma seperated; e.g STDOUT,CSV,XML,JSON,HTML,Excel (Default STDOUT with -Collect parameter, else CSV and Excel)")]
+    [ValidateSet('STDOUT', 'CSV', 'XML', 'JSON', 'EXCEL', 'HTML', 'All', 'Default')]
+    [array] $OutputType = 'Default',
+
+    [Parameter(Mandatory = $false, HelpMessage = "Timespan for Dormant accounts. Default 90 days")]
+    [ValidateRange(1,1000)]
+    [int] $DormantTimeSpan = 90,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Maximum machine account password age. Default 30 days")]
+    [ValidateRange(1,1000)]
+    [int] $PassMaxAge = 30,
+
+    [Parameter(Mandatory = $false, HelpMessage = "The PageSize to set for the LDAP searcher object. Default 200")]
+    [ValidateRange(1,10000)]
+    [int] $PageSize = 200,
+
+    [Parameter(Mandatory = $false, HelpMessage = "The number of threads to use during processing of objects. Default 10")]
+    [ValidateRange(1,100)]
+    [int] $Threads = 10,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Create ADRecon Log using Start-Transcript")]
+    [switch] $Log
+)
+
+$ADWSSource = @"
+// Thanks Dennis Albuquerque for the C# multithreading code
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.DirectoryServices;
+using System.Security.Principal;
+using System.Security.AccessControl;
+using System.Management.Automation;
+
+namespace ADRecon
+{
+    public static class ADWSClass
+    {
+        private static DateTime Date1;
+        private static int PassMaxAge;
+        private static int DormantTimeSpan;
+        private static Dictionary<String, String> AdGroupDictionary = new Dictionary<String, String>();
+        private static String DomainSID;
+        private static Dictionary<String, String> AdGPODictionary = new Dictionary<String, String>();
+        private static Hashtable GUIDs = new Hashtable();
+        private static Dictionary<String, String> AdSIDDictionary = new Dictionary<String, String>();
+        private static readonly HashSet<string> Groups = new HashSet<string> ( new String[] {"268435456", "268435457", "536870912", "536870913"} );
+        private static readonly HashSet<string> Users = new HashSet<string> ( new String[] { "805306368" } );
+        private static readonly HashSet<string> Computers = new HashSet<string> ( new String[] { "805306369" }) ;
+        private static readonly HashSet<string> TrustAccounts = new HashSet<string> ( new String[] { "805306370" } );
+
+        [Flags]
+        //Values taken from https://support.microsoft.com/en-au/kb/305144
+        public enum UACFlags
+        {
+            SCRIPT = 1,        // 0x1
+            ACCOUNTDISABLE = 2,        // 0x2
+            HOMEDIR_REQUIRED = 8,        // 0x8
+            LOCKOUT = 16,       // 0x10
+            PASSWD_NOTREQD = 32,       // 0x20
+            PASSWD_CANT_CHANGE = 64,       // 0x40
+            ENCRYPTED_TEXT_PASSWORD_ALLOWED = 128,      // 0x80
+            TEMP_DUPLICATE_ACCOUNT = 256,      // 0x100
+            NORMAL_ACCOUNT = 512,      // 0x200
+            INTERDOMAIN_TRUST_ACCOUNT = 2048,     // 0x800
+            WORKSTATION_TRUST_ACCOUNT = 4096,     // 0x1000
+            SERVER_TRUST_ACCOUNT = 8192,     // 0x2000
+            DONT_EXPIRE_PASSWD = 65536,    // 0x10000
+            MNS_LOGON_ACCOUNT = 131072,   // 0x20000
+            SMARTCARD_REQUIRED = 262144,   // 0x40000
+            TRUSTED_FOR_DELEGATION = 524288,   // 0x80000
+            NOT_DELEGATED = 1048576,  // 0x100000
+            USE_DES_KEY_ONLY = 2097152,  // 0x200000
+            DONT_REQUIRE_PREAUTH = 4194304,  // 0x400000
+            PASSWORD_EXPIRED = 8388608,  // 0x800000
+            TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION = 16777216, // 0x1000000
+            PARTIAL_SECRETS_ACCOUNT = 67108864 // 0x04000000
+        }
+
+        [Flags]
+        //Values taken from https://blogs.msdn.microsoft.com/openspecification/2011/05/30/windows-configurations-for-kerberos-supported-encryption-type/
+        public enum KerbEncFlags
+        {
+            ZERO = 0,
+            DES_CBC_CRC = 1,        // 0x1
+            DES_CBC_MD5 = 2,        // 0x2
+            RC4_HMAC = 4,        // 0x4
+            AES128_CTS_HMAC_SHA1_96 = 8,       // 0x18
+            AES256_CTS_HMAC_SHA1_96 = 16       // 0x10
+        }
+
+		private static readonly Dictionary<String, String> Replacements = new Dictionary<String, String>()
+        {
+            //{System.Environment.NewLine, ""},
+            //{",", ";"},
+            {"\"", "'"}
+        };
+
+        public static String CleanString(Object StringtoClean)
+        {
+            // Remove extra spaces and new lines
+            String CleanedString = String.Join(" ", ((Convert.ToString(StringtoClean)).Split((string[]) null, StringSplitOptions.RemoveEmptyEntries)));
+            foreach (String Replacement in Replacements.Keys)
+            {
+                CleanedString = CleanedString.Replace(Replacement, Replacements[Replacement]);
+            }
+            return CleanedString;
+        }
+
+        public static int ObjectCount(Object[] ADRObject)
+        {
+            return ADRObject.Length;
+        }
+
+        public static Object[] UserParser(Object[] AdUsers, DateTime Date1, int DormantTimeSpan, int PassMaxAge, int numOfThreads)
+        {
+            ADWSClass.Date1 = Date1;
+            ADWSClass.DormantTimeSpan = DormantTimeSpan;
+            ADWSClass.PassMaxAge = PassMaxAge;
+
+            Object[] ADRObj = runProcessor(AdUsers, numOfThreads, "Users");
+            return ADRObj;
+        }
+
+        public static Object[] UserSPNParser(Object[] AdUsers, int numOfThreads)
+        {
+            Object[] ADRObj = runProcessor(AdUsers, numOfThreads, "UserSPNs");
+            return ADRObj;
+        }
+
+        public static Object[] GroupParser(Object[] AdGroups, int numOfThreads)
+        {
+            Object[] ADRObj = runProcessor(AdGroups, numOfThreads, "Groups");
+            return ADRObj;
+        }
+
+        public static Object[] GroupMemberParser(Object[] AdGroups, Object[] AdGroupMembers, String DomainSID, int numOfThreads)
+        {
+            ADWSClass.AdGroupDictionary = new Dictionary<String, String>();
+            runProcessor(AdGroups, numOfThreads, "GroupsDictionary");
+            ADWSClass.DomainSID = DomainSID;
+            Object[] ADRObj = runProcessor(AdGroupMembers, numOfThreads, "GroupMembers");
+            return ADRObj;
+        }
+
+        public static Object[] OUParser(Object[] AdOUs, int numOfThreads)
+        {
+            Object[] ADRObj = runProcessor(AdOUs, numOfThreads, "OUs");
+            return ADRObj;
+        }
+
+        public static Object[] GPOParser(Object[] AdGPOs, int numOfThreads)
+        {
+            Object[] ADRObj = runProcessor(AdGPOs, numOfThreads, "GPOs");
+            return ADRObj;
+        }
+
+        public static Object[] SOMParser(Object[] AdGPOs, Object[] AdSOMs, int numOfThreads)
+        {
+            ADWSClass.AdGPODictionary = new Dictionary<String, String>();
+            runProcessor(AdGPOs, numOfThreads, "GPOsDictionary");
+            Object[] ADRObj = runProcessor(AdSOMs, numOfThreads, "SOMs");
+            return ADRObj;
+        }
+
+        public static Object[] PrinterParser(Object[] ADPrinters, int numOfThreads)
+        {
+            Object[] ADRObj = runProcessor(ADPrinters, numOfThreads, "Printers");
+            return ADRObj;
+        }
+
+        public static Object[] ComputerParser(Object[] AdComputers, DateTime Date1, int DormantTimeSpan, int PassMaxAge, int numOfThreads)
+        {
+            ADWSClass.Date1 = Date1;
+            ADWSClass.DormantTimeSpan = DormantTimeSpan;
+            ADWSClass.PassMaxAge = PassMaxAge;
+
+            Object[] ADRObj = runProcessor(AdComputers, numOfThreads, "Computers");
+            return ADRObj;
+        }
+
+        public static Object[] ComputerSPNParser(Object[] AdComputers, int numOfThreads)
+        {
+            Object[] ADRObj = runProcessor(AdComputers, numOfThreads, "ComputerSPNs");
+            return ADRObj;
+        }
+
+        public static Object[] LAPSParser(Object[] AdComputers, int numOfThreads)
+        {
+            Object[] ADRObj = runProcessor(AdComputers, numOfThreads, "LAPS");
+            return ADRObj;
+        }
+
+        public static Object[] DACLParser(Object[] ADObjects, Object PSGUIDs, int numOfThreads)
+        {
+            ADWSClass.AdSIDDictionary = new Dictionary<String, String>();
+            runProcessor(ADObjects, numOfThreads, "SIDDictionary");
+            ADWSClass.GUIDs = (Hashtable) PSGUIDs;
+            Object[] ADRObj = runProcessor(ADObjects, numOfThreads, "DACLs");
+            return ADRObj;
+        }
+
+        public static Object[] SACLParser(Object[] ADObjects, Object PSGUIDs, int numOfThreads)
+        {
+            ADWSClass.GUIDs = (Hashtable) PSGUIDs;
+            Object[] ADRObj = runProcessor(ADObjects, numOfThreads, "SACLs");
+            return ADRObj;
+        }
+
+        static Object[] runProcessor(Object[] arrayToProcess, int numOfThreads, string processorType)
+        {
+            int totalRecords 
